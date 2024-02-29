@@ -1,5 +1,6 @@
 const app = require("./app");
+const environment = require("./config/environment");
 
-app.listen(8000, () => {
-  console.log("server has started");
+app.listen(environment.host, () => {
+  console.log("server has started in port " + environment.host);
 });
