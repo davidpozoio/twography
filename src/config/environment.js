@@ -5,8 +5,9 @@ const developModes = {
 
 const environment = {
   developMode: process.env.DEVELOP_MODE || developModes.prod,
-  host: process.env.HOST || 8000,
+  port: process.env.PORT || 8080,
   mode: developModes,
+  secret: process.env.SECRET || "secret",
 };
 
 module.exports = environment;

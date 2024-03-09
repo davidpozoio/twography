@@ -1,6 +1,8 @@
-const app = require("./app");
-const environment = require("./config/environment");
-
-app.listen(environment.host, () => {
-  console.log("server has started in port " + environment.host);
+const dotenv = require("dotenv");
+dotenv.config({
+  path: ".env",
 });
+const environment = require("./config/environment");
+const { server } = require("./io");
+
+server(environment.port);

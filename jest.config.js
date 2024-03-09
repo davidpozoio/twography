@@ -1,7 +1,7 @@
 /** @type {import('jest').Config} */
 const config = {
   coverageThreshold: {},
-  setupFiles: ["<rootDir>/setup-jest.js"],
+  rootDir: "./src/__tests__",
 };
 
 module.exports = config;

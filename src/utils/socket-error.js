@@ -1,4 +1,4 @@
-class HttpError extends Error {
+class SocketError extends Error {
   constructor(errorState) {
     super();
     this.message = errorState.message;
@@ -8,4 +8,4 @@ class HttpError extends Error {
   }
 }
 
-module.exports = HttpError;
+module.exports = SocketError;

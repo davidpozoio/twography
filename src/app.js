@@ -1,4 +1,5 @@
 const express = require("express");
+const { createServer } = require("http");
 const {
   globalErrorController,
 } = require("./controllers/global-error-controller");
@@ -12,10 +13,12 @@ dotenv.config({
 
 const ERROR = require("./consts/errors");
 const { asyncErrorHandler } = require("./utils/async-error-handler");
-const HttpError = require("./utils/http-error");
 const environment = require("./config/environment");
+const SocketError = require("./utils/socket-error");
+const path = require("path");
 
 const app = express();
+const server = createServer(app);
 
 app.use(express.json());
 app.use(cookies());
@@ -27,15 +30,21 @@ app.use(
 //CORS CONFIG---------------------------------------------------------------
 app.use(cors());
 
-app.use("/", express.static("src/static/"));
+app.use("/", express.static("src/static/dist"));
+
+app.get("*", (req, res) => {
+  res
+    .status(200)
+    .sendFile(path.join(__dirname, "static", "dist", "index.html"));
+});
 
 app.use(
   "*",
   asyncErrorHandler(() => {
-    throw new HttpError(ERROR.ROUTE_NOT_FOUND);
+    throw new SocketError(ERROR.ROUTE_NOT_FOUND);
   })
 );
 
 app.use(globalErrorController);
 
-module.exports = app;
+module.exports = server;
