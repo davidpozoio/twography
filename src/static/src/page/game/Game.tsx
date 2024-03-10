@@ -3,7 +3,6 @@ import { useNavigate, useParams } from "react-router-dom";
 import socket from "../../config/socket";
 import SOCKET_ROUTES from "../../consts/socket-routes";
 import { ConnectRoomData } from "../../model/socket-model";
-import ROUTES from "../../consts/routes";
 
 const Game = () => {
   const { token } = useParams();
@@ -11,16 +10,17 @@ const Game = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    socket.on(SOCKET_ROUTES.ERROR, () => {
+    /*    socket.on(SOCKET_ROUTES.ERROR, () => {
       navigate(ROUTES.HOME.ME);
-    });
+    }); */
     socket.on(SOCKET_ROUTES.CONNECT_ROOM, (data: ConnectRoomData) => {
+      console.log(data);
       setConnections(data.connections);
     });
   }, [navigate]);
 
   useEffect(() => {
-    socket.emit(SOCKET_ROUTES.CONNECT_ROOM, { token: token });
+    socket.emit(SOCKET_ROUTES.CONNECT_ROOM, { token: token, name: "example" });
   }, [token]);
 
   return (

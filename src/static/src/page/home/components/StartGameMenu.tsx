@@ -16,6 +16,7 @@ const StartGameMenu = () => {
       console.log(err);
     });
     socket.on(SOCKET_ROUTES.CONNECT_ROOM, (data: ConnectRoomData) => {
+      console.log(data);
       navigate(ROUTES.GAME.TOKEN_VALUE(data.token));
     });
   }, [navigate]);
@@ -30,6 +31,7 @@ const StartGameMenu = () => {
         );
         socket.emit(SOCKET_ROUTES.CONNECT_ROOM, {
           token: formData["token"],
+          name: "example",
         } as ConnectRoomEmitter);
       }}
     >

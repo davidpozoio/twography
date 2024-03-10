@@ -1,8 +1,10 @@
 const SOCKET = {
-  MESSAGE: "message",
   ERROR: "error",
-  CREATE_ROOM: "create-room",
-  CONNECT_ROOM: "connect-room",
+  ROOM: {
+    NAMESPACE: "/room",
+    CREATE: "room:create",
+    JOIN: "room:join",
+  },
 };
 
 module.exports = { SOCKET };
