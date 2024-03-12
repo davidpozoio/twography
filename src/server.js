@@ -1,8 +1,8 @@
-const dotenv = require("dotenv");
+const dotenv = require('dotenv');
 dotenv.config({
-  path: ".env",
+  path: '.env',
 });
-const environment = require("./config/environment");
-const { server } = require("./io");
+const environment = require('./config/environment');
+const { server } = require('./io');
 
 server(environment.port);

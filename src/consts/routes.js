@@ -1,9 +1,13 @@
 const SOCKET = {
-  ERROR: "error",
+  ERROR: 'error',
   ROOM: {
-    NAMESPACE: "/room",
-    CREATE: "room:create",
-    JOIN: "room:join",
+    NAMESPACE: '/room',
+    CREATE: 'room:create',
+  },
+  GAME: {
+    NAMESPACE: '/game',
+    JOIN: 'game:join',
+    START: 'game:start',
   },
 };
 

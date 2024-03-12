@@ -1,16 +1,20 @@
-const { afterAll } = require("@jest/globals");
-const { beforeAll } = require("@jest/globals");
-const ioc = require("socket.io-client");
+const ioc = require('socket.io-client');
 
-exports.initSocketServer = (port = 8085) => {
-  beforeAll((done) => {
-    io = require("../io").server(port);
-    clientSocket = ioc("http://localhost:8085");
-    clientSocket.on("connect", done);
-  });
+exports.initSocketServer = (done, namespace = '') => {
+  let server, clientSocket;
+  server = require('../io').testingServer();
+  let url = `http://localhost:${server.address().port}${namespace}`;
+  clientSocket = ioc(url);
+  clientSocket.on('connect', done);
 
-  afterAll(() => {
-    io.close();
-    clientSocket.disconnect();
-  });
+  return {
+    server,
+    socket: clientSocket,
+    generateNewConnection: (namespace = undefined) => {
+      if (namespace) {
+        return ioc(`http://localhost:${server.address().port}${namespace}`);
+      }
+      return ioc(url);
+    },
+  };
 };

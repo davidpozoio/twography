@@ -1,17 +1,40 @@
+import { useEffect, useState } from "react";
 import "./App.css";
-import { Navigate, Route, Routes } from "react-router-dom";
-import ROUTES from "./consts/routes";
-import HomeRouter from "./page/home/HomeRouter";
-import GameRouter from "./page/game/GameRouter";
+import { roomSocket } from "./config/socket";
 
 function App() {
+  const [token, setToken] = useState("");
+
+  useEffect(() => {
+    roomSocket.on("error", (err) => {
+      console.log("error", err);
+    });
+    roomSocket.on("room:create", (data) => {
+      console.log(data);
+      setToken(data.token);
+    });
+
+    roomSocket.on("room:join", (data) => {
+      console.log(data);
+    });
+  });
+
   return (
     <>
-      <Routes>
-        <Route path="" element={<Navigate to={ROUTES.HOME.ME} />} />
-        <Route path={ROUTES.HOME.ME}>{HomeRouter}</Route>
-        <Route path={ROUTES.GAME.TOKEN}>{GameRouter}</Route>
-      </Routes>
+      <button
+        onClick={() => {
+          roomSocket.emit("room:create");
+        }}
+      >
+        create room
+      </button>
+      <button
+        onClick={() => {
+          roomSocket.emit("room:join", { token, name: "example" });
+        }}
+      >
+        join to a room
+      </button>
     </>
   );
 }

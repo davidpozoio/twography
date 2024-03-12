@@ -1,22 +1,12 @@
-const Joi = require("joi");
-const { SOCKET } = require("../consts/routes");
-
-const roomJoinSchema = Joi.object({
-  token: Joi.string().required(),
-  name: Joi.string().required(),
-});
+const { SOCKET } = require('../consts/routes');
+const { createToken } = require('../utils/jwt-utils');
 
 module.exports = (io) => {
-  io.of(SOCKET.ROOM.NAMESPACE).on("connection", (socket) => {
-    socket.on(SOCKET.ROOM.CREATE, () => {
-      socket.emit("room:create", { token: "12391" });
-    });
-
-    socket.on(SOCKET.ROOM.JOIN, (data) => {
-      const { error } = roomJoinSchema.validate(data);
-      if (error) {
-        return socket.emit(SOCKET.ERROR, error);
-      }
+  const rooms = io.of(SOCKET.ROOM.NAMESPACE);
+  rooms.on('connection', (socket) => {
+    socket.on(SOCKET.ROOM.CREATE, async () => {
+      const token = await createToken({ id: socket.id });
+      socket.emit(SOCKET.ROOM.CREATE, { token });
     });
   });
 };
