@@ -3,7 +3,6 @@ const server = require('./app');
 const { SOCKET } = require('./consts/routes');
 
 const io = new Server(server, {
-  connectionStateRecovery: {},
   cors: {
     origin: 'http://localhost:5173',
   },

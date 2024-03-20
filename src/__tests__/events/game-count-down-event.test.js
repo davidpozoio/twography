@@ -8,17 +8,42 @@ const { initSocketServer } = require('../../utils/init-websocket-server-test');
 const { afterEach } = require('@jest/globals');
 const ERROR = require('../../consts/errors');
 
+jest.mock('../../services/random-text-service', () => ({
+  getRandomText: () => Promise.resolve('Hello'),
+}));
+
 describe('game count down socket', () => {
-  let clientSocket, server;
+  let clientSocket, server, generateNewConnection;
   beforeEach((done) => {
     const client = initSocketServer(done, SOCKET.GAME.NAMESPACE);
     clientSocket = client.socket;
     server = client.server;
+    generateNewConnection = client.generateNewConnection;
   });
 
   afterEach(() => {
     clientSocket.disconnect();
     server.close();
+  });
+
+  test('should not start if there are not 2 player minimun', (done) => {
+    const clientSocketOnSpy = jest.fn();
+
+    createToken({ id: '1' }).then((token) => {
+      clientSocket.on(SOCKET.ERROR, (error) => {
+        expect(clientSocketOnSpy).not.toHaveBeenCalled();
+        expect(error.errorCode).toBe(ERROR.PLAYER_CAN_NOT_START.errorCode);
+        done();
+      });
+
+      clientSocket.on(SOCKET.GAME.START, clientSocketOnSpy);
+
+      clientSocket.on(SOCKET.GAME.JOIN, () => {
+        clientSocket.emit(SOCKET.GAME.START, { interval: 100, count: 3 });
+      });
+
+      clientSocket.emit(SOCKET.GAME.JOIN, { token, name: 'me' });
+    });
   });
 
   test('should start coutdown', (done) => {
@@ -43,12 +68,13 @@ describe('game count down socket', () => {
             break;
         }
       });
-
-      clientSocket.on(SOCKET.GAME.JOIN, () => {
-        clientSocket.emit(SOCKET.GAME.START, { interval: 100 });
+      const secondClient = generateNewConnection();
+      secondClient.on(SOCKET.GAME.JOIN, () => {
+        clientSocket.emit(SOCKET.GAME.START, { interval: 100, count: 3 });
       });
 
       clientSocket.emit(SOCKET.GAME.JOIN, { token, name: 'me' });
+      secondClient.emit(SOCKET.GAME.JOIN, { token, name: 'second player' });
     });
   });
 
@@ -66,13 +92,14 @@ describe('game count down socket', () => {
           done();
         }
       });
-
-      clientSocket.on(SOCKET.GAME.JOIN, () => {
+      const secondClient = generateNewConnection();
+      secondClient.on(SOCKET.GAME.JOIN, () => {
         clientSocket.emit(SOCKET.GAME.START, { interval: 100, count: 4 });
-        clientSocket.emit(SOCKET.GAME.START, { interval: 2000 });
+        clientSocket.emit(SOCKET.GAME.START, { interval: 2000, count: 3 });
       });
 
       clientSocket.emit(SOCKET.GAME.JOIN, { token, name: 'me' });
+      secondClient.emit(SOCKET.GAME.JOIN, { token, name: 'second player' });
     });
   });
 
@@ -80,6 +107,7 @@ describe('game count down socket', () => {
     const gameStartSpy = jest.fn(() => {});
 
     clientSocket.on(SOCKET.ERROR, (error) => {
+      console.log('//////////////////////////////', error);
       expect(error.errorCode).toBe(ERROR.ROOM_CONNECTION_REQUIRED.errorCode);
       expect(gameStartSpy).not.toHaveBeenCalled();
       done();
@@ -87,6 +115,46 @@ describe('game count down socket', () => {
 
     clientSocket.on(SOCKET.GAME.START, gameStartSpy);
 
-    clientSocket.emit(SOCKET.GAME.START);
+    clientSocket.emit(SOCKET.GAME.START, { count: 3, interval: 100 });
+  });
+
+  test('should send word while is starting', (done) => {
+    createToken({ id: '1' }).then((token) => {
+      clientSocket.on(SOCKET.GAME.RANDOM_TEXT, (data) => {
+        expect(data.text).not.toBeUndefined();
+        expect(data.text).toBe('Hello');
+        done();
+      });
+
+      clientSocket.on(SOCKET.GAME.JOIN, () => {
+        clientSocket.emit(SOCKET.GAME.START, { interval: 100, count: 3 });
+      });
+
+      clientSocket.emit(SOCKET.GAME.JOIN, { token, name: 'me' });
+    });
+  });
+  test('should emit start event only the first player connected', (done) => {
+    const clientOnStartSpy = jest.fn();
+    const secondClientOnStartSpy = jest.fn();
+    const secondClient = generateNewConnection();
+
+    createToken({ id: '1' }).then((token) => {
+      clientSocket.on(SOCKET.GAME.START, clientOnStartSpy);
+      secondClient.on(SOCKET.GAME.START, secondClientOnStartSpy);
+
+      secondClient.on(SOCKET.ERROR, (error) => {
+        expect(clientOnStartSpy).not.toHaveBeenCalled();
+        expect(secondClientOnStartSpy).not.toHaveBeenCalled();
+        expect(error.errorCode).toBe(ERROR.PLAYER_CAN_NOT_START.errorCode);
+        done();
+      });
+
+      secondClient.on(SOCKET.GAME.JOIN, () => {
+        secondClient.emit(SOCKET.GAME.START, { interval: 100, count: 3 });
+      });
+
+      clientSocket.emit(SOCKET.GAME.JOIN, { token, name: 'me' });
+      secondClient.emit(SOCKET.GAME.JOIN, { token, name: 'second player' });
+    });
   });
 });

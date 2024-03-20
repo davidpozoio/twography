@@ -2,6 +2,8 @@ const Joi = require('joi');
 const { SOCKET } = require('../consts/routes');
 const { verifyToken } = require('../utils/jwt-utils');
 const ERROR = require('../consts/errors');
+const { getRandomText } = require('../services/random-text-service');
+const { getRoomPlayers } = require('../utils/get-room-players');
 
 const gameJoinSchema = Joi.object({
   token: Joi.string().required(),
@@ -9,12 +11,21 @@ const gameJoinSchema = Joi.object({
 });
 
 const gameCountDownSchema = Joi.object({
-  count: Joi.number().default(3),
-  interval: Joi.number().default(1000),
+  count: Joi.number().default(3).required(),
+  interval: Joi.number().default(1000).required(),
+});
+
+const gameTextSchema = Joi.object({
+  text: Joi.string().required(),
+});
+
+const gameWinnerSchema = Joi.object({
+  time: Joi.number().required(),
 });
 
 module.exports = (io) => {
   const game = io.of(SOCKET.GAME.NAMESPACE);
+
   game.on('connection', (socket) => {
     const roomState = {
       token: undefined,
@@ -22,8 +33,9 @@ module.exports = (io) => {
     };
     socket.on(SOCKET.GAME.JOIN, async (data) => {
       const { error } = gameJoinSchema.validate(data);
-      if (error) {
-        return socket.emit(SOCKET.ERROR, { error });
+
+      if (error || !data) {
+        return socket.emit(SOCKET.ERROR, { ...ERROR.INVALID_SCHEMA, error });
       }
 
       const isValid = await verifyToken(data.token);
@@ -42,6 +54,8 @@ module.exports = (io) => {
 
       roomState.token = data.token;
       roomState.name = data.name;
+      //set data attribute to share name between sockets
+      socket.data = { name: roomState.name };
 
       const players = game.adapter.rooms.get(data.token);
 
@@ -49,21 +63,25 @@ module.exports = (io) => {
         token: data.token,
         connections,
         players: Array.from(players).map((id) => {
-          return { id, name: data.name };
+          const name = game.sockets.get(id).data.name;
+          return { id, name };
         }),
       });
     });
 
     socket.on(SOCKET.GAME.START, (data) => {
+      const { error, value } = gameCountDownSchema.validate(data);
+      if (error || !data) {
+        return socket.emit(SOCKET.ERROR, { ...ERROR.INVALID_SCHEMA, error });
+      }
       if (!roomState.token)
         return socket.emit(SOCKET.ERROR, ERROR.ROOM_CONNECTION_REQUIRED);
 
-      const { error, value } = gameCountDownSchema.validate(data);
-      if (error) {
-        return socket.emit(SOCKET.ERROR, { error });
-      }
-
       data = value;
+
+      if (getRoomPlayers(game, roomState.token).length === 1) {
+        return socket.emit(SOCKET.ERROR, ERROR.PLAYER_CAN_NOT_START);
+      }
 
       if (data.count > 3 || data.count < 0) {
         return socket.emit(SOCKET.ERROR, ERROR.SECONDS_LIMIT_EXCEEDED);
@@ -73,6 +91,14 @@ module.exports = (io) => {
         return socket.emit(SOCKET.ERROR, ERROR.INTERVAL_LIMIT_EXCEEDED);
       }
 
+      getRandomText()
+        .then((word) => {
+          return socket.emit(SOCKET.GAME.RANDOM_TEXT, { text: word });
+        })
+        .catch((error) => {
+          return socket.emit(SOCKET.ERROR, { error });
+        });
+
       let seconds = data.count;
       const counter = setInterval(() => {
         game.to(roomState.token).emit(SOCKET.GAME.START, { count: seconds });
@@ -81,6 +107,37 @@ module.exports = (io) => {
           clearInterval(counter);
         }
       }, data.interval);
+    });
+
+    socket.on(SOCKET.GAME.TEXT, (data) => {
+      if (!roomState.token)
+        return socket.emit(SOCKET.ERROR, ERROR.ROOM_CONNECTION_REQUIRED);
+
+      const { error } = gameTextSchema.validate(data);
+      if (error || !data) {
+        return socket.emit(SOCKET.ERROR, { ...ERROR.INVALID_SCHEMA, error });
+      }
+
+      socket.broadcast
+        .to(roomState.token)
+        .emit(SOCKET.GAME.TEXT, { id: socket.id, text: data.text });
+    });
+
+    socket.on(SOCKET.GAME.WINNER, (data) => {
+      if (!roomState.token) {
+        return socket.emit(SOCKET.ERROR, ERROR.ROOM_CONNECTION_REQUIRED);
+      }
+
+      const { error } = gameWinnerSchema.validate(data);
+      if (error || !data) {
+        return socket.emit(SOCKET.ERROR, { ...ERROR.INVALID_SCHEMA, error });
+      }
+
+      game.to(roomState.token).emit(SOCKET.GAME.WINNER, {
+        id: socket.id,
+        name: roomState.name,
+        time: data.time,
+      });
     });
 
     socket.on('disconnect', () => {

@@ -1,10 +1,8 @@
 class SocketError extends Error {
   constructor(errorState) {
     super();
-    this.message = errorState.message;
-    this.statusCode = errorState.statusCode;
-    this.errorCode = errorState.errorCode;
-    this.isOptional = true;
+    this.isOperational = true;
+    this.data = errorState;
   }
 }
 

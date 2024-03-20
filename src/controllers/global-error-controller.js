@@ -1,4 +1,4 @@
-const environment = require("../config/environment");
+const environment = require('../config/environment');
 
 exports.globalErrorController = (err, req, res, next) => {
   if (Array.isArray(err)) {
@@ -9,7 +9,7 @@ exports.globalErrorController = (err, req, res, next) => {
       error: {
         message:
           environment.developMode === environment.mode.prod
-            ? "server error has ocurred, try later!"
+            ? 'server error has ocurred, try later!'
             : undefined,
         error:
           environment.developMode === environment.mode.prod ? undefined : err,

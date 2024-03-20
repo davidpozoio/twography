@@ -28,6 +28,14 @@ const ERROR = {
     errorCode: 1007,
     message: 'you must join to a room before',
   },
+  INVALID_SCHEMA: {
+    errorCode: 1008,
+    message: 'the provided schema is not valid',
+  },
+  PLAYER_CAN_NOT_START: {
+    errorCode: 1009,
+    message: "you can't start the countdown",
+  },
 };
 
 module.exports = ERROR;

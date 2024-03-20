@@ -1,10 +1,9 @@
-import { Manager, io } from "socket.io-client";
+import { Manager } from "socket.io-client";
 
-const manager = new Manager("http://localhost:8081");
+const url = import.meta.env.NODE_ENV === "test" ? "" : `http://localhost:8081`;
+
+const manager = new Manager(url);
 
 export const mainSocket = manager.socket("/");
 export const roomSocket = manager.socket("/room");
-
-const socket = io("http://localhost:8081");
-
-export default socket;
+export const gameSocket = manager.socket("/game");

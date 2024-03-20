@@ -8,6 +8,9 @@ const SOCKET = {
     NAMESPACE: '/game',
     JOIN: 'game:join',
     START: 'game:start',
+    TEXT: 'game:text',
+    RANDOM_TEXT: 'game:random-text',
+    WINNER: 'game:winner',
   },
 };
 
