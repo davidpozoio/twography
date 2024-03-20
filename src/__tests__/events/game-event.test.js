@@ -28,6 +28,9 @@ describe('game event socket', () => {
         expect(data.token).not.toBeUndefined();
         expect(data.connections).not.toBeUndefined();
         expect(data.players).not.toBeUndefined();
+        expect(data.players[0].id).toBe(clientSocket.id);
+        expect(data.players[0].name).toBe('example');
+        expect(data.players[0].canStart).toBe(true);
 
         done();
       });
@@ -69,6 +72,7 @@ describe('game event socket', () => {
           expect(data.players).toContainEqual({
             id: secondClient.id,
             name: 'second',
+            canStart: false,
           });
         }
 
@@ -83,6 +87,7 @@ describe('game event socket', () => {
           expect(data.players).toContainEqual({
             id: clientSocket.id,
             name: 'example',
+            canStart: true,
           });
         }
       });
@@ -118,6 +123,7 @@ describe('game event socket', () => {
           expect(data.players).not.toContainEqual({
             id: secondClient.id,
             name: 'second',
+            canStart: false,
           });
           done();
         }

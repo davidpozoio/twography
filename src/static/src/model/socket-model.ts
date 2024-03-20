@@ -5,6 +5,7 @@ export interface CreateRoomResponse {
 export interface PlayerRoom {
   id: string;
   name: string;
+  canStart: boolean;
 }
 
 export interface JoinRoomResponse {

@@ -47,6 +47,7 @@ describe('game count down socket', () => {
   });
 
   test('should start coutdown', (done) => {
+    const secondClient = generateNewConnection();
     createToken({ id: '1' }).then((token) => {
       let count = 0;
 
@@ -64,11 +65,12 @@ describe('game count down socket', () => {
             break;
           case 4:
             expect(data.count).toBe(0);
+            secondClient.disconnect();
             done();
             break;
         }
       });
-      const secondClient = generateNewConnection();
+
       secondClient.on(SOCKET.GAME.JOIN, () => {
         clientSocket.emit(SOCKET.GAME.START, { interval: 100, count: 3 });
       });
@@ -89,13 +91,15 @@ describe('game count down socket', () => {
         }
         if (count === 2) {
           expect(error.errorCode).toBe(ERROR.INTERVAL_LIMIT_EXCEEDED.errorCode);
+          secondClient.disconnect();
           done();
         }
       });
       const secondClient = generateNewConnection();
+
       secondClient.on(SOCKET.GAME.JOIN, () => {
         clientSocket.emit(SOCKET.GAME.START, { interval: 100, count: 4 });
-        clientSocket.emit(SOCKET.GAME.START, { interval: 2000, count: 3 });
+        clientSocket.emit(SOCKET.GAME.START, { interval: 2000, count: 0 });
       });
 
       clientSocket.emit(SOCKET.GAME.JOIN, { token, name: 'me' });
@@ -107,7 +111,6 @@ describe('game count down socket', () => {
     const gameStartSpy = jest.fn(() => {});
 
     clientSocket.on(SOCKET.ERROR, (error) => {
-      console.log('//////////////////////////////', error);
       expect(error.errorCode).toBe(ERROR.ROOM_CONNECTION_REQUIRED.errorCode);
       expect(gameStartSpy).not.toHaveBeenCalled();
       done();
@@ -119,18 +122,21 @@ describe('game count down socket', () => {
   });
 
   test('should send word while is starting', (done) => {
+    const secondClient = generateNewConnection();
     createToken({ id: '1' }).then((token) => {
       clientSocket.on(SOCKET.GAME.RANDOM_TEXT, (data) => {
         expect(data.text).not.toBeUndefined();
         expect(data.text).toBe('Hello');
+        secondClient.disconnect();
         done();
       });
 
-      clientSocket.on(SOCKET.GAME.JOIN, () => {
+      secondClient.on(SOCKET.GAME.JOIN, () => {
         clientSocket.emit(SOCKET.GAME.START, { interval: 100, count: 3 });
       });
 
       clientSocket.emit(SOCKET.GAME.JOIN, { token, name: 'me' });
+      secondClient.emit(SOCKET.GAME.JOIN, { token, name: 'second player' });
     });
   });
   test('should emit start event only the first player connected', (done) => {

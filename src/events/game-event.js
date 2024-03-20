@@ -54,7 +54,9 @@ module.exports = (io) => {
 
       roomState.token = data.token;
       roomState.name = data.name;
-      //set data attribute to share name between sockets
+      //set data attribute to share name between sockets and set canStart param to define
+      //if the player can start the countdown
+
       socket.data = { name: roomState.name };
 
       const players = game.adapter.rooms.get(data.token);
@@ -62,9 +64,13 @@ module.exports = (io) => {
       return game.to(data.token).emit(SOCKET.GAME.JOIN, {
         token: data.token,
         connections,
-        players: Array.from(players).map((id) => {
+        players: Array.from(players).map((id, index) => {
           const name = game.sockets.get(id).data.name;
-          return { id, name };
+          if (index === 0) {
+            game.sockets.get(id).data.canStart = true;
+            return { id, name, canStart: true };
+          }
+          return { id, name, canStart: false };
         }),
       });
     });
@@ -79,16 +85,19 @@ module.exports = (io) => {
 
       data = value;
 
-      if (getRoomPlayers(game, roomState.token).length === 1) {
-        return socket.emit(SOCKET.ERROR, ERROR.PLAYER_CAN_NOT_START);
-      }
-
       if (data.count > 3 || data.count < 0) {
         return socket.emit(SOCKET.ERROR, ERROR.SECONDS_LIMIT_EXCEEDED);
       }
 
       if (data.interval > 1000 || data.interval < 0) {
         return socket.emit(SOCKET.ERROR, ERROR.INTERVAL_LIMIT_EXCEEDED);
+      }
+
+      if (
+        getRoomPlayers(game, roomState.token).length === 1 ||
+        !socket.data.canStart
+      ) {
+        return socket.emit(SOCKET.ERROR, ERROR.PLAYER_CAN_NOT_START);
       }
 
       getRandomText()
@@ -144,14 +153,15 @@ module.exports = (io) => {
       if (roomState.token) {
         socket.leave(roomState.token);
         const connections = game.adapter.rooms?.get(roomState.token)?.size;
-
         const players = game.adapter.rooms?.get(roomState.token);
 
         return game.to(roomState.token).emit(SOCKET.GAME.JOIN, {
           token: roomState.token,
           connections,
-          players: Array.from(players || []).map((id) => {
-            return { id, name: roomState.name };
+          players: Array.from(players || []).map((id, index) => {
+            if (index === 0)
+              return { id, name: roomState.name, canStart: true };
+            return { id, name: roomState.name, canStart: false };
           }),
         });
       }
